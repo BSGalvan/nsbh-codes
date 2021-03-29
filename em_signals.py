@@ -85,12 +85,11 @@ class DynamicalEjecta(KiloNova):
         and (r_max, theta) at t
 
         """
-        r_min = self.velmin_dyn * (self.theta_dyn - theta + 1 ) * t
-        r_max = self.velmax_dyn * (theta - self.theta_dyn + 1 ) * t
+        r_min = self.velmin_dyn * (self.theta_dyn - theta + 1) * t
+        r_max = self.velmax_dyn * (theta - self.theta_dyn + 1) * t
 
         return r_min, r_max
 
-    def 
 
 class NeutrinoWindEjecta(KiloNova):
 
@@ -153,7 +152,7 @@ class ViscousWindEjecta(KiloNova):
         self.velmax_v = 3 * self.velrms_v
 
     def rho_v(self, vel_v, theta, t):
-        """Compute the density of the viscous wind ejecta at (vel_v, theta, t) in spacetime.
+        """Compute the density of viscous wind ejecta at (vel_v, theta, t) in spacetime.
 
         Parameters
         ----------

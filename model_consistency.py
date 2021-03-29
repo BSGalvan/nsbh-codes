@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # Program to test the consistency of the various models used in the thesis.
 # First from Foucart et al., 2018 and second from Kawaguchi et al., 2016.
 
