@@ -68,7 +68,7 @@ def love_c(c_ns):
     a_0 = 0.360
     a_1 = -0.0355
     a_2 = 0.000705
-    lambda_ns = np.exp(-a_1 + np.sqrt(a_1 ** 2 - 4 * a_2 * (a_0 - c_ns)) / (2 * a_2))
+    lambda_ns = np.exp((-a_1 - np.sqrt(a_1 ** 2 - 4 * a_2 * (a_0 - c_ns))) / (2 * a_2))
     return lambda_ns
 
 

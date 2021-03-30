@@ -61,8 +61,7 @@ def compute_masses(m_BH, chi_BH, m_NS=1.4, lambda_NS=330):
     term_alpha = alpha * (1 - 2 * rho) / (eta ** (1 / 3))
     term_beta = -beta * rcap_isco(chi_BH) * rho / eta
     term_gamma = gamma
-    m_out = m_b *\
-        (np.maximum(term_alpha + term_beta + term_gamma, 0.0)) ** delta
+    m_out = m_b * (np.maximum(term_alpha + term_beta + term_gamma, 0.0)) ** delta
 
     # Compute m_dyn. Formula from ^Kawaguchi et al., 2016
     a1, a2, a3, a4, n1, n2 = 4.464e-2, 2.269e-3, 2.431, -0.4159, 0.2497, 1.352
@@ -140,12 +139,7 @@ fig4, ax4 = plt.subplots()
 ax4.set_xlabel(r"$M_{BH}[M_\odot]$", fontsize=14)
 ax4.set_ylabel(r"$\chi_{BH}$", fontsize=14)
 ax4.set_title(r"Ratio of $M_{out}$ to $M_{dyn}$", fontsize=14)
-c4 = ax4.contourf(mm,
-                  ss,
-                  m_out / m_dyn_mask,
-                  levels=lvls2,
-                  cmap="turbo",
-                  norm=norm2)
+c4 = ax4.contourf(mm, ss, m_out / m_dyn_mask, levels=lvls2, cmap="turbo", norm=norm2)
 cbar4 = plt.colorbar(c4)
 cbar4.set_ticks(lvls2)
 cbar4.set_ticklabels(lvls2)
