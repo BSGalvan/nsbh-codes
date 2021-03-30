@@ -5,8 +5,9 @@
 import h5py
 import numpy as np
 from scipy.interpolate import interp1d
+from scipy.stats import powerlaw
 
-from nsbh_merger import M_SUN, G, C, PI
+from nsbh_merger import M_SUN, G, C, PI, KPC
 
 M_MIN = 2 * M_SUN  # lower cut-off for BH distribution considered
 M_MAX = 10 * M_SUN  # upper cut-off for BH distribution considered
@@ -134,6 +135,8 @@ cos_theta = 2 * np.random.random(NUM_SAMP) - 1
 cos_iota = 2 * np.random.random(NUM_SAMP) - 1
 psi = 2 * PI * np.random.random(NUM_SAMP)
 phi = 2 * PI * np.random.random(NUM_SAMP)
+# Luminosity Distance ~ const. in comoving volume uptil D_L ~ 800 Mpc
+lum_dist = powerlaw.rvs(3, scale=800 * KPC * 1000, size=NUM_SAMP)
 
 # %% Waveform model, noise curves and misc stuff
 
