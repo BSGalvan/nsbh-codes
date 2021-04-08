@@ -1,6 +1,10 @@
-#!/bin/python3
+#!/usr/bin/env python
 # Program to create a population of NS-BH binaries with various prior distributions.
 # %% Imports, Auxiliary Function Definitions and constants.
+
+import json
+import logging
+import time
 
 import h5py
 import numpy as np
@@ -9,9 +13,17 @@ from scipy.stats import powerlaw
 
 from nsbh_merger import M_SUN, G, C, PI, KPC
 
+logging.basicConfig(
+    level=logging.DEBUG, format=" %(asctime)s - %(levelname)s - %(message)s"
+)
+
+start = time.time()
+
+logging.debug("Start of the Program")
+
 M_MIN = 2 * M_SUN  # lower cut-off for BH distribution considered
 M_MAX = 10 * M_SUN  # upper cut-off for BH distribution considered
-NUM_SAMP = 5000  # number of samples in population
+NUM_SAMP = 10000  # number of samples in population
 
 
 def gen_samples(support, P_x, N=1000):
@@ -73,14 +85,17 @@ def love_c(c_ns):
 
 
 # Define path to the 'truncated' mass ppd file
-ppd_file = "./o1o2o3_mass_b_iid_mag_two_comp_iid_tilt_powerlaw_redshift_mass_data.h5"
+ppd_file = "data/o1o2o3_mass_b_iid_mag_two_comp_iid_tilt_powerlaw_redshift_mass_data.h5"
 
 # Define path to the 'default' spin magnitude distribution file
 spin_file = (
-    "./o1o2o3_mass_c_iid_mag_two_comp_iid_tilt_powerlaw_redshift_magnitude_data.h5"
+    "data/o1o2o3_mass_c_iid_mag_two_comp_iid_tilt_powerlaw_redshift_magnitude_data.h5"
 )
 
 # Define dummy arrays
+
+logging.debug("Extracting PPDs")
+
 mass_ratio_dummy = np.linspace(0.1, 1, 500)  # for integration of 2D ppd
 mass_1_dummy, dx = np.linspace(
     3, 100, 1000, retstep=True
@@ -90,6 +105,8 @@ spin_mags_dummy = np.linspace(0, 1, 1000)  # for normalization of spin dist.
 with h5py.File(ppd_file, "r") as f:
     mass_ppd = f["ppd"]
     mass_1_ppd = np.trapz(mass_ppd, mass_ratio_dummy, axis=0)
+
+logging.debug("Finished extracting mass PPD")
 
 with h5py.File(spin_file, "r") as f:
     ppd = f["ppd"]
@@ -104,15 +121,23 @@ with h5py.File(spin_file, "r") as f:
     )
     spin_probs_ppd = np.mean(normalized_lines, axis=0)
 
+logging.debug("Finished extracting spin PPD")
+
+logging.debug("Setting component masses")
+
 # %% Component masses
 
 M_NS = 1.4 * M_SUN  # neutron star mass
 
 # draw samples from the (primary) black hole mass distribution,
 # and truncate to be within [M_MIN, M_MAX]
-mass_bh = gen_samples(mass_1_dummy, mass_1_ppd, NUM_SAMP)
+mass_bh = gen_samples(mass_1_dummy, mass_1_ppd, NUM_SAMP) * M_SUN
 mask = np.logical_and(mass_bh <= M_MAX, mass_bh >= M_MIN)
 mass_bh_trunc = mass_bh[mask]
+
+logging.debug("Finished setting component masses")
+
+logging.debug("Setting component spins")
 
 # %% Component spins
 
@@ -120,6 +145,10 @@ CHI_NS = 0  # neutron star spin
 
 # draw samples from the black hole spin magnitude distribution
 chi_bh = gen_samples(spin_mags_dummy, spin_probs_ppd, NUM_SAMP)
+
+logging.debug("Finished setting component spins")
+
+logging.debug("Setting component Lambdas")
 
 # %% Component tidal deformabilities / compactness
 
@@ -129,14 +158,23 @@ R_NS = 11 * 1e5  # 11 km (in cgs)  # neutron star radius
 C_NS = G * M_NS / (R_NS * C ** 2)  # neutron star compactness
 LAMBDA_NS = love_c(C_NS)
 
+logging.debug("Finished setting component Lambdas")
+
+logging.debug("Setting binary 3D sky locations")
+
 # %% Sky location of the binary || Constant comoving volume distribution
 
-cos_theta = 2 * np.random.random(NUM_SAMP) - 1
-cos_iota = 2 * np.random.random(NUM_SAMP) - 1
+theta = np.arccos(2 * np.random.random(NUM_SAMP) - 1)
+iota = np.arccos(2 * np.random.random(NUM_SAMP) - 1)
 psi = 2 * PI * np.random.random(NUM_SAMP)
 phi = 2 * PI * np.random.random(NUM_SAMP)
+
 # Luminosity Distance ~ const. in comoving volume uptil D_L ~ 800 Mpc
 lum_dist = powerlaw.rvs(3, scale=800 * KPC * 1000, size=NUM_SAMP)
+
+logging.debug("Finished setting binary 3D sky locations")
+
+logging.debug("Setting detector parameters")
 
 # %% Waveform model, noise curves and misc stuff
 
@@ -147,3 +185,49 @@ psd_files = {
     "L1": "./O3-L1-C01_CLEAN_SUB60HZ-1240573680.0_sensitivity_strain_asd.txt",
     "V1": "./O3-V1_sensitivity_strain_asd.txt",
 }
+
+logging.debug("Finished setting detector parameters")
+
+logging.debug("Packing data --> HDF5 file")
+
+# %% Pack all the related variables together
+
+popln_params = np.stack(
+    (
+        mass_bh_trunc,  # masses of black holes [0]
+        M_NS * np.ones_like(mass_bh_trunc),  # masses of neutron stars [1]
+        chi_bh[mask],  # spins of the black holes [2]
+        CHI_NS * np.ones_like(chi_bh[mask]),  # spins of neutron stars [3]
+        LAMBDA_BH
+        * np.ones_like(mass_bh_trunc),  # tidal deformabilities of black holes [4]
+        LAMBDA_NS
+        * np.ones_like(mass_bh_trunc),  # tidal deformabilities of neutron stars [5]
+        theta[mask],  # RA of the binary on the sky [6]
+        phi[mask],  # DEC of the binary on the sky [7]
+        lum_dist[mask],  # luminosity distance to binary [8]
+        iota[mask],  # inclinations of binaries wrt LOS [9]
+        psi[mask],  # polarization angle of binary [10]
+    )
+)
+
+# Detector metadata --> dict --> JSON --> attribute in final HDF5 file
+detector_params = json.dumps(
+    dict(wf_model=WF_MODEL, is_psd=IS_PSD, psd_paths=psd_files), indent=4
+)
+
+
+# %% Create the HDF5 File
+
+with h5py.File("population.hdf5", "a") as f:
+    dset = f.create_dataset(
+        "/data/popln_parameters",
+        shape=popln_params.shape,
+        dtype=popln_params.dtype,
+        data=popln_params,
+    )
+    dset.attrs["detector_params"] = detector_params
+
+logging.debug("Finished making population.hdf5")
+
+logging.debug("End of Program")
+print(f"Took {time.time() - start}s...")

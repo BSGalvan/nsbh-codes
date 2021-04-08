@@ -29,6 +29,9 @@ class KiloNova(nsbh_merger.NSBHMerger):
         self.sigma = 0.11  # in s
         self.t_0 = 1.3  # in s
 
+        # set timespan for the calculations
+        self.timespan = np.arange(0.5, 11.0, 0.5) * nsbh_merger.DAY
+
 
 class DynamicalEjecta(KiloNova):
 
@@ -44,6 +47,20 @@ class DynamicalEjecta(KiloNova):
         self.theta_dyn = 0.35  # latitudinal extent, avg(0.2, 0.5), in rad
         self.velmin_dyn = 0.1 * nsbh_merger.C
         self.velmax_dyn = self.compute_velmax(self.velrms_dyn, self.velmin_dyn)
+
+        # Define the velocity-space mesh over which to calculate
+        # the density and opacity functions
+        self.vel_grid, self.theta_grid, self.phi_grid = (
+            np.linspace(
+                self.velmin_dyn, self.velmax_dyn, 100
+            ),  # velocity/radial coordinate
+            np.linspace(
+                -self.theta_dyn, self.theta_dyn, 100
+            ),  # latitudinal coordinate (from equator!)
+            np.linspace(0, self.phi_dyn, 100),  # longitudinal coordinate
+        )
+
+        self.velsp_mesh = np.meshgrid(self.vel_grid, self.theta_grid, self.phi_grid)
 
     def compute_velmax(velrms, velmin):
         """Compute the maximum velocity, given RMS and minimum velocities.
@@ -107,6 +124,18 @@ class NeutrinoWindEjecta(KiloNova):
         self.velrms_n = 0.0667 * nsbh_merger.C
         self.velmax_n = 3 * self.velrms_n
 
+        # Define the velocity-space mesh over which to calculate
+        # the density and opacity functions
+        self.vel_grid, self.theta_grid, self.phi_grid = (
+            np.linspace(0, self.velmax_n, 100),  # velocity/radial coordinate
+            np.linspace(
+                0, self.theta_n, 100
+            ),  # latitudinal coordinate (from north pole!)
+            np.linspace(0, 2 * nsbh_merger.PI, 100),  # longitudinal coordinate
+        )
+
+        self.velsp_mesh = np.meshgrid(self.vel_grid, self.theta_grid, self.phi_grid)
+
     def rho_n(self, vel_n, t):
         """Compute the neutrino-wind ejecta density at the point (v_n, t) in spacetime.
 
@@ -150,6 +179,18 @@ class ViscousWindEjecta(KiloNova):
         self.theta_v = nsbh_merger.PI / 2  # latitudinal extent of viscous-driven wind
         self.velrms_v = 0.035 * nsbh_merger.C  # avg(0.03-0.04) * C
         self.velmax_v = 3 * self.velrms_v
+
+        # Define the velocity-space mesh over which to calculate
+        # the density and opacity functions
+        self.vel_grid, self.theta_grid, self.phi_grid = (
+            np.linspace(0, self.velmax_v, 100),  # velocity/radial coordinate
+            np.linspace(
+                0, self.theta_v, 100
+            ),  # latitudinal coordinate (from north pole!)
+            np.linspace(0, 2 * nsbh_merger.PI, 100),  # longitudinal coordinate
+        )
+
+        self.velsp_mesh = np.meshgrid(self.vel_grid, self.theta_grid, self.phi_grid)
 
     def rho_v(self, vel_v, theta, t):
         """Compute the density of viscous wind ejecta at (vel_v, theta, t) in spacetime.

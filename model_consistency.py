@@ -26,12 +26,10 @@ def rcap_isco(chi_bh=0):
 
 
 @njit
-def c_love(lambda_NS=330):
+def c_love(lambda_NS):
     """Compute the compactness of a NS using the C-Love relation."""
     # Function Body
-    a = np.array([0.36, -0.0355, 0.000705])
-    C_NS = a.dot(np.array([1, np.log(lambda_NS), np.log(lambda_NS) ** 2]))
-    return C_NS
+    return 0.36 - 0.0355 * np.log(lambda_NS) + 0.000705 * np.log(lambda_NS) ** 2
 
 
 @njit
@@ -82,68 +80,71 @@ def compute_masses(m_BH, chi_BH, m_NS=1.4, lambda_NS=330):
     return m_out, m_dyn, m_disc
 
 
-# Checking for Model Consistency
+if __name__ == "__main__":
 
-mass_NS = 1.4
-Lambda = 330  # corresponding to SFHo EoS
-mass_bh = np.linspace(3, 10, 1000)  # 2.1428 <= q<= 7.1428
-spin_bh = np.linspace(0, 1.0, 1000)  # Higher spins not discussed!
+    # Checking for Model Consistency
 
-mm, ss = np.meshgrid(mass_bh, spin_bh)
-m_out, m_dyn, m_disc = compute_masses(mm, ss)
+    mass_NS = 1.4
+    Lambda = 330  # corresponding to SFHo EoS
+    mass_bh = np.linspace(3, 10, 1000)  # 2.1428 <= q<= 7.1428
+    spin_bh = np.linspace(0, 1.0, 1000)  # Higher spins not discussed!
 
-# Plotting
+    mm, ss = np.meshgrid(mass_bh, spin_bh)
+    m_out, m_dyn, m_disc = compute_masses(mm, ss)
 
-lvls = np.array([1e-4, 5e-4, 1e-3, 5e-3, 1e-2, 5e-2, 0.1, 0.5, 1.0])
-norm = LogNorm(vmin=lvls.min(), vmax=lvls.max())
+    # Plotting
 
-# m_dyn
-fig1, ax1 = plt.subplots()
-ax1.set_xlabel(r"$M_{BH}[M_\odot]$", fontsize=14)
-ax1.set_ylabel(r"$\chi_{BH}$", fontsize=14)
-ax1.set_title(r"$M_{dyn} [M_\odot]$", fontsize=14)
-c1 = ax1.contourf(mm, ss, m_dyn, levels=lvls, cmap="turbo", norm=norm)
-cbar1 = plt.colorbar(c1)
-cbar1.set_ticks(lvls)
-cbar1.set_ticklabels(lvls)
-cbar1.ax.minorticks_off()
+    lvls = np.array([1e-4, 5e-4, 1e-3, 5e-3, 1e-2, 5e-2, 0.1, 0.5, 1.0])
+    norm = LogNorm(vmin=lvls.min(), vmax=lvls.max())
 
-# m_disc
-fig2, ax2 = plt.subplots()
-ax2.set_xlabel(r"$M_{BH}[M_\odot]$", fontsize=14)
-ax2.set_ylabel(r"$\chi_{BH}$", fontsize=14)
-ax2.set_title(r"$M_{disc} [M_\odot]$", fontsize=14)
-c2 = ax2.contourf(mm, ss, m_disc, levels=lvls, cmap="turbo", norm=norm)
-cbar2 = plt.colorbar(c2)
-cbar2.set_ticks(lvls)
-cbar2.set_ticklabels(lvls)
-cbar2.ax.minorticks_off()
+    # m_dyn
+    fig1, ax1 = plt.subplots()
+    ax1.set_xlabel(r"$M_{BH}[M_\odot]$", fontsize=14)
+    ax1.set_ylabel(r"$\chi_{BH}$", fontsize=14)
+    ax1.set_title(r"$M_{dyn} [M_\odot]$", fontsize=14)
+    c1 = ax1.contourf(mm, ss, m_dyn, levels=lvls, cmap="turbo", norm=norm)
+    cbar1 = plt.colorbar(c1)
+    cbar1.set_ticks(lvls)
+    cbar1.set_ticklabels(lvls)
+    cbar1.ax.minorticks_off()
 
-# m_out
-fig3, ax3 = plt.subplots()
-ax3.set_xlabel(r"$M_{BH}[M_\odot]$", fontsize=14)
-ax3.set_ylabel(r"$\chi_{BH}$", fontsize=14)
-ax3.set_title(r"$M_{out} [M_\odot]$", fontsize=14)
-c3 = ax3.contourf(mm, ss, m_out, levels=lvls, cmap="turbo", norm=norm)
-cbar3 = plt.colorbar(c3)
-cbar3.set_ticks(lvls)
-cbar3.set_ticklabels(lvls)
-cbar3.ax.minorticks_off()
+    # m_disc
+    fig2, ax2 = plt.subplots()
+    ax2.set_xlabel(r"$M_{BH}[M_\odot]$", fontsize=14)
+    ax2.set_ylabel(r"$\chi_{BH}$", fontsize=14)
+    ax2.set_title(r"$M_{disc} [M_\odot]$", fontsize=14)
+    c2 = ax2.contourf(mm, ss, m_disc, levels=lvls, cmap="turbo", norm=norm)
+    cbar2 = plt.colorbar(c2)
+    cbar2.set_ticks(lvls)
+    cbar2.set_ticklabels(lvls)
+    cbar2.ax.minorticks_off()
 
-# ratio
-lvls2 = np.logspace(0, 3, 11)
-norm2 = LogNorm(vmin=lvls2.min(), vmax=lvls2.max())
-m_dyn_mask = np.ma.masked_where(m_dyn == 0, m_dyn)
+    # m_out
+    fig3, ax3 = plt.subplots()
+    ax3.set_xlabel(r"$M_{BH}[M_\odot]$", fontsize=14)
+    ax3.set_ylabel(r"$\chi_{BH}$", fontsize=14)
+    ax3.set_title(r"$M_{out} [M_\odot]$", fontsize=14)
+    c3 = ax3.contourf(mm, ss, m_out, levels=lvls, cmap="turbo", norm=norm)
+    cbar3 = plt.colorbar(c3)
+    cbar3.set_ticks(lvls)
+    cbar3.set_ticklabels(lvls)
+    cbar3.ax.minorticks_off()
 
-fig4, ax4 = plt.subplots()
-ax4.set_xlabel(r"$M_{BH}[M_\odot]$", fontsize=14)
-ax4.set_ylabel(r"$\chi_{BH}$", fontsize=14)
-ax4.set_title(r"Ratio of $M_{out}$ to $M_{dyn}$", fontsize=14)
-c4 = ax4.contourf(mm, ss, m_out / m_dyn_mask, levels=lvls2, cmap="turbo", norm=norm2)
-cbar4 = plt.colorbar(c4)
-cbar4.set_ticks(lvls2)
-cbar4.set_ticklabels(lvls2)
-cbar4.ax.minorticks_off()
+    # ratio
+    lvls2 = np.logspace(0, 3, 11)
+    norm2 = LogNorm(vmin=lvls2.min(), vmax=lvls2.max())
+    m_dyn_mask = np.ma.masked_where(m_dyn == 0, m_dyn)
 
+    fig4, ax4 = plt.subplots()
+    ax4.set_xlabel(r"$M_{BH}[M_\odot]$", fontsize=14)
+    ax4.set_ylabel(r"$\chi_{BH}$", fontsize=14)
+    ax4.set_title(r"Ratio of $M_{out}$ to $M_{dyn}$", fontsize=14)
+    c4 = ax4.contourf(
+        mm, ss, m_out / m_dyn_mask, levels=lvls2, cmap="turbo", norm=norm2
+    )
+    cbar4 = plt.colorbar(c4)
+    cbar4.set_ticks(lvls2)
+    cbar4.set_ticklabels(lvls2)
+    cbar4.ax.minorticks_off()
 
-plt.show()
+    plt.show()
