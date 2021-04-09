@@ -22,8 +22,9 @@ start = time.time()
 logging.debug("Start of the Program")
 
 M_MIN = 2 * M_SUN  # lower cut-off for BH distribution considered
-M_MAX = 10 * M_SUN  # upper cut-off for BH distribution considered
-NUM_SAMP = 10000  # number of samples in population
+M_MAX = 20 * M_SUN  # upper cut-off for BH distribution considered
+D_MAX = 576.2572572572573 * KPC * 1000  # maximal distance for q = 20:1.4 => NWSNR = 10
+NUM_SAMP = 100000  # number of samples in population
 
 
 def gen_samples(support, P_x, N=1000):
@@ -170,7 +171,7 @@ psi = 2 * PI * np.random.random(NUM_SAMP)
 phi = 2 * PI * np.random.random(NUM_SAMP)
 
 # Luminosity Distance ~ const. in comoving volume uptil D_L ~ 800 Mpc
-lum_dist = powerlaw.rvs(3, scale=800 * KPC * 1000, size=NUM_SAMP)
+lum_dist = powerlaw.rvs(3, scale=D_MAX, size=NUM_SAMP)
 
 logging.debug("Finished setting binary 3D sky locations")
 
@@ -218,7 +219,7 @@ detector_params = json.dumps(
 
 # %% Create the HDF5 File
 
-with h5py.File("population.hdf5", "a") as f:
+with h5py.File("population_100k.hdf5", "a") as f:
     dset = f.create_dataset(
         "/data/popln_parameters",
         shape=popln_params.shape,
@@ -227,7 +228,7 @@ with h5py.File("population.hdf5", "a") as f:
     )
     dset.attrs["detector_params"] = detector_params
 
-logging.debug("Finished making population.hdf5")
+logging.debug("Finished making population_100k.hdf5")
 
 logging.debug("End of Program")
 print(f"Took {time.time() - start}s...")
