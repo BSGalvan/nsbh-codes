@@ -62,6 +62,8 @@ def fplus_fcross_pycbc(detector="H1", theta=0.0, phi=0.0, psi=0.0):
     """Compute a detector's sensitivity pattern for a given sky location."""
     det = DETS[detector]
     reference_time = 1126259462.0  # What is this?
+    #                ^^^^^^^^^^^^ GW150914's time.
+    # See pydet.Detector for why this is required
     ra, dec = PhiTheta2raDec(phi=phi, theta=theta, gpst=reference_time)
     fp, fc = det.antenna_pattern(
         right_ascension=ra, declination=dec, polarization=psi, t_gps=reference_time
@@ -110,11 +112,11 @@ def optimal_snr(
     Lambda2=0.0,
     dkappa1=0.0,
     dkappa2=0.0,
-    f_min=16.0,
-    f_max=1023.75,
+    f_min=20.0,  # seismic floor
+    f_max=1465.7292021,  # f_LSO for lightest BH (3 M_SUN)
     deltaF=0.005,
     detector=["L1", "H1", "V1"],
-    psdfn=[pput.allo_o3a, pput.alho_o3a, pput.avirgo_o3a],
+    psdfn=[pput.allo_des, pput.alho_des, pput.avirgo_des],
     wfmodel="TaylorF2",  # changed from IMRPhenomPv2
 ):
 
@@ -141,14 +143,14 @@ def optimal_snr(
     )
 
     f = np.array(hp.sample_frequencies.data)
-    # f         = np.arange(0, f_max + deltaF, deltaF)
+    # f = np.arange(0, f_max + deltaF, deltaF)
     inBand = (f >= f_min) & (f <= f_max)
     f = f[inBand]  # trimmed the zero paddings
     hpf = np.array(hp.data)[inBand]
     hcf = np.array(hc.data)[inBand]
     # ------------------------------------
     rho = []
-    for DET, PSD in zip(detector, psdfn):
+    for idx, (DET, PSD) in enumerate(zip(detector, psdfn)):
         Snf = PSD(f)
         Fp, Fc = fplus_fcross_pycbc(DET, theta, phi, psi)
         hf = hpf * Fp + hcf * Fc
@@ -217,8 +219,8 @@ def get_lalsim_wf(
         inclination,  # inclination of source (rad)
         phiRef,  # reference orbital phase (rad)
         longAscNodes,  # longitude of ascending nodes,
-                       # degenerate with the polarization angle,
-                       # Omega in documentation
+        # degenerate with the polarization angle,
+        # Omega in documentation
         eccentricity,  # eccentricity at reference epoch
         meanPerAno,  # mean anomaly of periastron
         deltaF,  # sampling interval (Hz)
@@ -275,15 +277,12 @@ def get_snr_using_lalsim_wf(
     psdfn=[pput.allo_o3a, pput.alho_o3a, pput.avirgo_o3a],
     wfmodel=lalsim.IMRPhenomPv2,
 ):
+    """Computes SNR at any detector structure and sensitivity (by default for L1 with aplus)
 
-    """
-        Computes SNR at any detector structures and sensiivity (by default for L1 with aplus)
-    ------------------------------------------------------
-    All the inputs are in earth frame (theta,phi are the sky locations in geocentric frame)
-    ------------------------------------------------------
-    Masses are the detector-frame masses, so for a case where the redshift effect is non-negligible,
-    the appropreate factor should be already included; Mdet = Msrc x (1+z)
-    ----------------------------------------
+    All the inputs are in Earth frame (theta, phi are sky locations in a geocentric
+    frame). Masses are the detector-frame masses, so for a case where the redshift
+    effect is non-negligible, the appropriate factor should be already included i.e.
+    Mdet = Msrc x (1+z) should be the input.
     """
 
     f, hpf, hcf = get_lalsim_wf(

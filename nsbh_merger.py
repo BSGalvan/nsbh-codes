@@ -1,8 +1,8 @@
 #!/bin/python3
 # %% Imports, Auxiliary Function Definitions and constants
 
-from astropy import constants as const
 import numpy as np
+from astropy import constants as const
 
 # All constants are in CGS units!
 G = const.G.cgs.value  # Universal Gravitational Constant

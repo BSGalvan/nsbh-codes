@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # Program to compute the prompt emission, given a disc mass M_disc
 
 from numba import jit

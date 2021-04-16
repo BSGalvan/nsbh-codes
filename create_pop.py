@@ -8,10 +8,13 @@ import time
 
 import h5py
 import numpy as np
-from scipy.interpolate import interp1d
+
 from scipy.stats import powerlaw
 
-from nsbh_merger import M_SUN, G, C, PI, KPC
+from math_utils import gen_samples, love_c
+from nsbh_merger import M_SUN, G, C, PI, MPC
+
+from d_max import d_max
 
 logging.basicConfig(
     level=logging.DEBUG, format=" %(asctime)s - %(levelname)s - %(message)s"
@@ -20,70 +23,14 @@ logging.basicConfig(
 start = time.time()
 
 logging.debug("Start of the Program")
+logging.disable()
 
-M_MIN = 2 * M_SUN  # lower cut-off for BH distribution considered
-M_MAX = 20 * M_SUN  # upper cut-off for BH distribution considered
-D_MAX = 576.2572572572573 * KPC * 1000  # maximal distance for q = 20:1.4 => NWSNR = 10
+M_MIN = 3.0  # lower cut-off for BH distribution considered
+M_MAX = 20.0  # upper cut-off for BH distribution considered
+D_MAX = (
+    d_max(100.0, 2000.0, 1000) * MPC  # ~ 1124 Mpc
+)  # maximal distance for q = 20:1.4, NWSNR = 10 NSBH merger
 NUM_SAMP = 100000  # number of samples in population
-
-
-def gen_samples(support, P_x, N=1000):
-    """Generate samples from a specific probability distribution.
-    The probability distribution in question is specified as an array of samples,
-    in P_x, with a support given in the eponymous variable. N controls how many
-    samples to generate, via the inverse transform sampling method.
-
-    Parameters
-    ----------
-    support : ndarray, support for the probability distribution
-    P_x : ndarray of function values, the probability distribution to sample from
-    NUM_SAMP : integer, optional, the number of samples to generate
-
-    Returns
-    -------
-    samples : ndarray, the samples generated from P_x
-
-    """
-    if np.trapz(P_x, support) > 1.0:
-        P_x = P_x / np.trapz(P_x, support)  # normalize, if not normalized.
-
-    dx = support[1] - support[0]  # spacing between the points, assumed to be uniform
-    ecdf = np.cumsum(P_x) * dx  # compute empirical CDF
-
-    if np.any(ecdf[1:] == ecdf[:-1]):
-        # remove final data point (TODO: formalize this fix!)
-        ecdf = ecdf[:-1]
-        support = support[:-1]
-
-    ecdf_inv_interp = interp1d(
-        ecdf, support, kind="cubic"
-    )  # fit a cubic spline to the inverse CDF
-
-    samples = ecdf_inv_interp(np.random.random(N))  # generate samples
-    return samples
-
-
-def love_c(c_ns):
-    """Compute the tidal deformability, given the compactness.
-    This function computes the tidal deformability of a neutron star, given the
-    compactness of the neutron star, by solving the C-Love relation for the
-    tidal deformability.
-
-    Parameters
-    ----------
-    c_ns : float, compactness of the neutron star
-
-    Returns
-    -------
-    lambda_ns : float, tidal deformability of the neutron star
-
-    """
-    a_0 = 0.360
-    a_1 = -0.0355
-    a_2 = 0.000705
-    lambda_ns = np.exp((-a_1 - np.sqrt(a_1 ** 2 - 4 * a_2 * (a_0 - c_ns))) / (2 * a_2))
-    return lambda_ns
-
 
 # Define path to the 'truncated' mass ppd file
 ppd_file = "data/o1o2o3_mass_b_iid_mag_two_comp_iid_tilt_powerlaw_redshift_mass_data.h5"
@@ -93,15 +40,13 @@ spin_file = (
     "data/o1o2o3_mass_c_iid_mag_two_comp_iid_tilt_powerlaw_redshift_magnitude_data.h5"
 )
 
-# Define dummy arrays
+# Define dummy arrays for integrations
+# See https://dcc.ligo.org/public/0171/P2000434/002/Produce-Figures.ipynb
 
 logging.debug("Extracting PPDs")
 
-mass_ratio_dummy = np.linspace(0.1, 1, 500)  # for integration of 2D ppd
-mass_1_dummy, dx = np.linspace(
-    3, 100, 1000, retstep=True
-)  # for interpolation of 1D ppd
-spin_mags_dummy = np.linspace(0, 1, 1000)  # for normalization of spin dist.
+mass_ratio_dummy = np.linspace(0.1, 1, 500)  # for integration of 2D mass-q ppd
+mass_1_dummy = np.linspace(3, 100, 1000)  # for interpolation of 1D ppd
 
 with h5py.File(ppd_file, "r") as f:
     mass_ppd = f["ppd"]
@@ -109,6 +54,7 @@ with h5py.File(ppd_file, "r") as f:
 
 logging.debug("Finished extracting mass PPD")
 
+spin_mags_dummy = np.linspace(0, 1, 1000)  # for normalization of spin dist.
 with h5py.File(spin_file, "r") as f:
     ppd = f["ppd"]
     lines = f["lines"]
@@ -130,11 +76,11 @@ logging.debug("Setting component masses")
 
 M_NS = 1.4 * M_SUN  # neutron star mass
 
-# draw samples from the (primary) black hole mass distribution,
-# and truncate to be within [M_MIN, M_MAX]
-mass_bh = gen_samples(mass_1_dummy, mass_1_ppd, NUM_SAMP) * M_SUN
-mask = np.logical_and(mass_bh <= M_MAX, mass_bh >= M_MIN)
-mass_bh_trunc = mass_bh[mask]
+# draw samples from the (primary) black hole mass distribution, guaranteed to be
+# within [M_MIN, M_MAX]
+mass_bh = (
+    gen_samples(mass_1_dummy, mass_1_ppd, N=NUM_SAMP, low=M_MIN, high=M_MAX) * M_SUN
+)
 
 logging.debug("Finished setting component masses")
 
@@ -155,7 +101,7 @@ logging.debug("Setting component Lambdas")
 
 LAMBDA_BH = 0  # black hole tidal deformability
 
-R_NS = 11 * 1e5  # 11 km (in cgs)  # neutron star radius
+R_NS = 11 * 1e5  # 11 km (in cgs); neutron star radius
 C_NS = G * M_NS / (R_NS * C ** 2)  # neutron star compactness
 LAMBDA_NS = love_c(C_NS)
 
@@ -170,7 +116,7 @@ iota = np.arccos(2 * np.random.random(NUM_SAMP) - 1)
 psi = 2 * PI * np.random.random(NUM_SAMP)
 phi = 2 * PI * np.random.random(NUM_SAMP)
 
-# Luminosity Distance ~ const. in comoving volume uptil D_L ~ 800 Mpc
+# Luminosity Distance ~ const. in comoving volume until D_L ~ D_MAX Mpc
 lum_dist = powerlaw.rvs(3, scale=D_MAX, size=NUM_SAMP)
 
 logging.debug("Finished setting binary 3D sky locations")
@@ -180,12 +126,13 @@ logging.debug("Setting detector parameters")
 # %% Waveform model, noise curves and misc stuff
 
 WF_MODEL = "IMRPhenomPv2"
-IS_PSD = False
+IS_PSD = True
 psd_files = {
-    "H1": "./O3-H1-C01_CLEAN_SUB60HZ-1251752040.0_sensitivity_strain_asd.txt",
-    "L1": "./O3-L1-C01_CLEAN_SUB60HZ-1240573680.0_sensitivity_strain_asd.txt",
-    "V1": "./O3-V1_sensitivity_strain_asd.txt",
+    "H1": "data/aLIGO_ZERO_DET_high_P.txt",
+    "L1": "data/aLIGO_ZERO_DET_high_P.txt",
+    "V1": "data/aLIGO_ZERO_DET_high_P.txt",
 }
+
 
 logging.debug("Finished setting detector parameters")
 
@@ -195,19 +142,21 @@ logging.debug("Packing data --> HDF5 file")
 
 popln_params = np.stack(
     (
-        mass_bh_trunc,  # masses of black holes [0]
-        M_NS * np.ones_like(mass_bh_trunc),  # masses of neutron stars [1]
-        chi_bh[mask],  # spins of the black holes [2]
-        CHI_NS * np.ones_like(chi_bh[mask]),  # spins of neutron stars [3]
+        mass_bh,  # masses of black holes (g) [0]
+        M_NS * np.ones_like(mass_bh),  # masses of neutron stars (g) [1]
+        chi_bh,  # spins of the black holes (dim_less) [2]
+        CHI_NS * np.ones_like(chi_bh),  # spins of neutron stars (dim_less) [3]
         LAMBDA_BH
-        * np.ones_like(mass_bh_trunc),  # tidal deformabilities of black holes [4]
+        * np.ones_like(mass_bh),  # tidal deformabilities of black holes (dim_less) [4]
         LAMBDA_NS
-        * np.ones_like(mass_bh_trunc),  # tidal deformabilities of neutron stars [5]
-        theta[mask],  # RA of the binary on the sky [6]
-        phi[mask],  # DEC of the binary on the sky [7]
-        lum_dist[mask],  # luminosity distance to binary [8]
-        iota[mask],  # inclinations of binaries wrt LOS [9]
-        psi[mask],  # polarization angle of binary [10]
+        * np.ones_like(
+            mass_bh
+        ),  # tidal deformabilities of neutron stars (dim_less) [5]
+        theta,  # RA of the binary on the sky (rad) [6]
+        phi,  # DEC of the binary on the sky (rad) [7]
+        lum_dist,  # luminosity distance to binary (cm) [8]
+        iota,  # inclinations of binaries wrt LOS (rad) [9]
+        psi,  # polarization angle of binary (rad) [10]
     )
 )
 
@@ -219,7 +168,7 @@ detector_params = json.dumps(
 
 # %% Create the HDF5 File
 
-with h5py.File("population_100k.hdf5", "a") as f:
+with h5py.File("population_test.hdf5", "a") as f:
     dset = f.create_dataset(
         "/data/popln_parameters",
         shape=popln_params.shape,
@@ -228,7 +177,7 @@ with h5py.File("population_100k.hdf5", "a") as f:
     )
     dset.attrs["detector_params"] = detector_params
 
-logging.debug("Finished making population_100k.hdf5")
+logging.debug("Finished making population_100k_test.hdf5")
 
 logging.debug("End of Program")
 print(f"Took {time.time() - start}s...")

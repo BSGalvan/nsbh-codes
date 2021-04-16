@@ -177,6 +177,6 @@ alho_o3a = psdInterp(
 )
 avirgo_o3a = psdInterp(filename="data/O3-V1_sensitivity_strain_asd.txt", filetype="asd")
 
-# allo_o2 = psdInterp(filename="data/L1_GWTC1_GW170818_PSD.dat")
-# alho_o2 = psdInterp(filename="data/H1_GWTC1_GW170818_PSD.dat")
-# avirgo_o2 = psdInterp(filename="data/V1_GWTC1_GW170818_PSD.dat")
+allo_des = psdInterp(filename="data/aLIGO_ZERO_DET_high_P.txt", filetype="asd")
+alho_des = psdInterp(filename="data/aLIGO_ZERO_DET_high_P.txt", filetype="asd")
+avirgo_des = psdInterp(filename="data/aLIGO_ZERO_DET_high_P.txt", filetype="asd")
