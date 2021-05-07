@@ -12,6 +12,7 @@ import numpy as np
 from tqdm import tqdm
 
 from model_consistency import compute_masses
+from math_utils import f_lso
 from nsbh_merger import M_SUN, MPC, PI
 from plot_utils import plot_snrs, plot_fluences, plot_thetav
 from prompt_emission import do_gauss_cutoff_integral
@@ -66,7 +67,7 @@ if __name__ == "__main__":
 
     logging.debug("Read in HDF5 file")
 
-    with h5py.File("population_test.hdf5", "r") as f:
+    with h5py.File("population_unif_test.hdf5", "r") as f:
         grp = f["data"]
         popln_params = grp["popln_parameters"]
         NUM_SAMPLES = popln_params.shape[1]
@@ -93,7 +94,7 @@ if __name__ == "__main__":
     logging.debug("Compute the SNRs")
 
     try:
-        snrs = np.load("snrs_test.npy")
+        snrs = np.load("snrs_unif_test.npy")
         logging.debug("NOTE : Found precached SNRs file for this population!")
     except FileNotFoundError:
         print("Didn't find a precached SNR file for this population")
@@ -126,10 +127,12 @@ if __name__ == "__main__":
                 iota=iota[idx],
                 S1z=chi_bh[idx],
                 S2z=chi_ns[idx],
+                f_min=20,
+                f_max=f_lso(mass_bh[idx] + mass_ns[idx]),
                 Lambda1=lambda_bh[idx],
                 Lambda2=lambda_ns[idx],
             )
-        np.save("snrs_test.npy", snrs)
+        np.save("snrs_unif_test.npy", snrs)
 
     logging.debug("Done computing SNRs")
 
@@ -156,7 +159,7 @@ if __name__ == "__main__":
         desc="Calculating E_iso(theta_v)... ",
         total=NUM_SAMPLES,
     ):
-        E_iso[idx] = 1e7 * do_gauss_cutoff_integral(angle, GAUSS_CUT, disc, spin)[0]
+        E_iso[idx] = do_gauss_cutoff_integral(angle, GAUSS_CUT, disc, spin)[0]
 
     logging.debug("Done computing E_iso(theta_v)")
 
@@ -173,12 +176,16 @@ if __name__ == "__main__":
 
     plot_fluences(fluence_masked, style="pdf")
 
+    plot_fluences(fluence_masked)
+
     logging.debug("Peeking at the Viewing Angle Distribution")
 
     iota_masked = iota[fluence_mask]
     theta_v_masked = theta_v[fluence_mask]
 
     plot_thetav(theta_v_masked, style="pdf")
+
+    plot_thetav(theta_v_masked)
 
     logging.debug("End of Program")
 

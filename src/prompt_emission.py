@@ -3,12 +3,11 @@
 
 from numba import jit
 import numpy as np
+from nsbh_merger import M_SUN, PI, C
 import matplotlib.pyplot as plt
 from scipy.integrate import nquad
+from tqdm import tqdm
 
-PI = np.pi
-C = 299792458  # speed of light in vacuum, in m/s
-M_SUN = 1.98e30  # mass of the Sun in kg
 theta_E = 0.1  # core angle for the energy profile function, in radians
 theta_gamma = 0.2  # core angle for the Lorentz factor function, in radians
 gamma_0 = 100  # on-axis gamma
@@ -75,6 +74,7 @@ if __name__ == "__main__":
     view_angle = np.radians(np.logspace(0, 2, 500))
 
     lorentz = 1 + (gamma_0 - 1) * np.exp(-((view_angle / theta_gamma) ** 2))
+
     E_kin_iso = (
         4
         * PI
@@ -83,16 +83,12 @@ if __name__ == "__main__":
         * np.exp(-((view_angle / theta_E) ** 2))
     )
 
-    E_iso = list()
+    E_iso = np.zeros(view_angle.size)
     cutoff = PI / 3
-    for idx, angle in enumerate(view_angle):
-        print(
-            "Gauss Status: Currently doing ",
-            view_angle[idx],
-            " radians, which is position ",
-            idx,
-        )
-        E_iso.append(do_gauss_cutoff_integral(angle, cutoff)[0])
+    for idx, angle in tqdm(
+        enumerate(view_angle), desc="Gauss Status", total=view_angle.size
+    ):
+        E_iso[idx] = do_gauss_cutoff_integral(angle, cutoff)[0]
 
     E_iso = np.asarray(E_iso)
     fig, ax1 = plt.subplots()

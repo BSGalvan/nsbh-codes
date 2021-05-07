@@ -31,11 +31,7 @@ def Dc(z):  # in Mpc (since DH is in Mpc)
     def integrand(zprime):
         return DH / fn_E(zprime)
 
-    return quad(
-        integrand,
-        0,
-        z,
-    )[0]
+    return quad(integrand, 0, z,)[0]
 
 
 def DL(z):
@@ -180,3 +176,5 @@ avirgo_o3a = psdInterp(filename="data/O3-V1_sensitivity_strain_asd.txt", filetyp
 allo_des = psdInterp(filename="data/aLIGO_ZERO_DET_high_P.txt", filetype="asd")
 alho_des = psdInterp(filename="data/aLIGO_ZERO_DET_high_P.txt", filetype="asd")
 avirgo_des = psdInterp(filename="data/aLIGO_ZERO_DET_high_P.txt", filetype="asd")
+
+aligo_old = psdInterp(filename="data/aLIGO_old.txt", filetype="asd")

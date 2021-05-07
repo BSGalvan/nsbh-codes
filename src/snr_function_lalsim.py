@@ -151,6 +151,8 @@ def optimal_snr(
     # ------------------------------------
     rho = []
     for idx, (DET, PSD) in enumerate(zip(detector, psdfn)):
+        # print(f)
+        # print(PSD)
         Snf = PSD(f)
         Fp, Fc = fplus_fcross_pycbc(DET, theta, phi, psi)
         hf = hpf * Fp + hcf * Fc

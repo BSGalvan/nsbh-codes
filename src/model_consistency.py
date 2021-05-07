@@ -71,8 +71,11 @@ def compute_masses(m_BH, chi_BH, m_NS=1.4, lambda_NS=330):
 
     # Enforce upper limits on m_dyn.
 
-    mask = m_dyn > f * m_out
-    m_dyn[mask] = f * m_out[mask]
+    if m_dyn.size > 1:
+        mask = m_dyn > f * m_out
+        m_dyn[mask] = f * m_out[mask]
+    else:
+        m_dyn = f * m_out if m_dyn > f * m_out else m_dyn
 
     # Compute m_disc
     m_disc = np.maximum(m_out - m_dyn, 0)
