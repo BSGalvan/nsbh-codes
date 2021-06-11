@@ -1,32 +1,56 @@
 #!/usr/bin/env python
 # Program to compute the prompt emission, given a disc mass M_disc
 
-from numba import jit
+from numba import njit
 import numpy as np
-from nsbh_merger import M_SUN, PI, C
 import matplotlib.pyplot as plt
 from scipy.integrate import nquad
 from tqdm import tqdm
 
+from math_constants import M_SUN, PI, C
+from math_utils import rootfind
+
 theta_E = 0.1  # core angle for the energy profile function, in radians
 theta_gamma = 0.2  # core angle for the Lorentz factor function, in radians
 gamma_0 = 100  # on-axis gamma
+# gamma_0 = 300  # on-axis gamma, more extreme boosting
 eta = 0.1  # kinetic energy --> gamma ray efficiency
 
 
-@jit(nopython=True)
+@njit
 def calc_omega_H(chi_bh=1):
     """ Calculate dimensionless ang. freq. at the horizon, given chi_bh"""
     return chi_bh / (2 * (1 + np.sqrt(1 - chi_bh ** 2)))
 
 
-@jit(nopython=True)
-def calc_E_kin_jet(M_disc=1, chi_bh=1):
+# @njit
+# def calc_E_kin_jet(M_disc=1, chi_bh=1):
+# """ Calculate the kinetic energy, given the disc mass in M_sun"""
+# epsilon = 0.015  # as specified in Barbieri et al., 2019
+# xi_wind = 0.01  # fraction of M_disc ejected as wind
+# xi_secular = 0.2  # fraction of M_disc which is secular ejecta
+# omega_H = calc_omega_H(chi_bh)
+# f = 1 + 1.38 * omega_H ** 2 - 9.2 * omega_H ** 4
+# return (
+# epsilon
+# * (1 - xi_wind - xi_secular)
+# * M_disc
+# * M_SUN
+# * C ** 2
+# * omega_H ** 2
+# * f
+# )
+
+
+def calc_E_kin_jet(
+    M_disc=0.001, chi_bh=0.5, mass_bh=3, mass_ns=1, C_ns=0.18, M_rem=0.0
+):
     """ Calculate the kinetic energy, given the disc mass in M_sun"""
-    epsilon = 0.015  # as specified in Barbieri et al.
+    epsilon = 0.015  # as specified in Barbieri et al., 2019
     xi_wind = 0.01  # fraction of M_disc ejected as wind
     xi_secular = 0.2  # fraction of M_disc which is secular ejecta
-    omega_H = calc_omega_H(chi_bh)
+    new_chi_bh = rootfind(chi_bh, mass_bh, mass_ns, C_ns, M_rem)
+    omega_H = calc_omega_H(new_chi_bh)
     f = 1 + 1.38 * omega_H ** 2 - 9.2 * omega_H ** 4
     return (
         epsilon
@@ -39,12 +63,26 @@ def calc_E_kin_jet(M_disc=1, chi_bh=1):
     )
 
 
-@jit(nopython=True)  # need for faster code! DO NOT REMOVE!
-def gaussian(theta, phi, theta_v, M_disc=1, chi_bh=1):
+# @njit  # need for faster code! DO NOT REMOVE!
+# def gaussian(theta, phi, theta_v, M_disc=1, chi_bh=1):
+# """Return function value at (theta, phi), corresponding to Gaussian jet."""
+# gamma = 1 + (gamma_0 - 1) * np.exp(-((theta / theta_gamma) ** 2))
+# beta = np.sqrt(1 - 1 / gamma ** 2)
+# E_c = calc_E_kin_jet(M_disc, chi_bh) / (PI * theta_E ** 2)
+# dE_dOmega = E_c * np.exp(-((theta / theta_E) ** 2))
+# cos_alpha = np.cos(theta_v) * np.cos(theta) + np.sin(theta_v) * np.sin(
+# theta
+# ) * np.cos(phi)
+# # Define return values
+# retval = np.sin(theta) * dE_dOmega / ((gamma ** 4) * ((1 - beta * cos_alpha) ** 3))
+# return eta * retval
+
+
+@njit
+def gaussian(theta, phi, theta_v, E_c):
     """Return function value at (theta, phi), corresponding to Gaussian jet."""
     gamma = 1 + (gamma_0 - 1) * np.exp(-((theta / theta_gamma) ** 2))
     beta = np.sqrt(1 - 1 / gamma ** 2)
-    E_c = calc_E_kin_jet(M_disc, chi_bh) / (PI * theta_E ** 2)
     dE_dOmega = E_c * np.exp(-((theta / theta_E) ** 2))
     cos_alpha = np.cos(theta_v) * np.cos(theta) + np.sin(theta_v) * np.sin(
         theta
@@ -54,18 +92,43 @@ def gaussian(theta, phi, theta_v, M_disc=1, chi_bh=1):
     return eta * retval
 
 
-def do_gauss_cutoff_integral(theta_v, cutoff_angle, M_disc=1, chi_bh=1):
+# def do_gauss_cutoff_integral(theta_v, cutoff_angle, M_disc=1, chi_bh=1):
+# """Return the value after integrating over a gaussian jet with a cutoff."""
+# ans, err, out_dict = nquad(
+# gaussian,
+# ranges=[[0, cutoff_angle], [0, 2 * PI]],
+# args=(theta_v, M_disc, chi_bh),
+# full_output=True,
+# )
+# # print("Got gamma_0 of ", gamma_0)
+# return ans, err, out_dict
+
+
+def do_gauss_cutoff_integral(
+    theta_v,
+    cutoff_angle,
+    M_disc=0.001,
+    chi_bh=0.5,
+    mass_bh=3,
+    mass_ns=1,
+    C_ns=0.18,
+    M_rem=0.0,
+):
     """Return the value after integrating over a gaussian jet with a cutoff."""
+    E_c = calc_E_kin_jet(M_disc, chi_bh, mass_bh, mass_ns, C_ns, M_rem) / (
+        PI * theta_E ** 2
+    )
     ans, err, out_dict = nquad(
         gaussian,
         ranges=[[0, cutoff_angle], [0, 2 * PI]],
-        args=(theta_v, M_disc, chi_bh),
+        args=(theta_v, E_c),
         full_output=True,
     )
+    # print("Got gamma_0 of ", gamma_0)
     return ans, err, out_dict
 
 
-@jit(nopython=True)
+@njit
 def calc_onaxis(E_kin_jet, theta_E=0.1, eta=0.1):
     return eta * E_kin_jet / (1 - np.cos(theta_E))
 

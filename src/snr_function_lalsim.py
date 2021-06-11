@@ -1,12 +1,13 @@
 from math import sqrt
 
-import numpy as np
-import pop_utils as pput
 import lal
 import lalsimulation as lalsim
+from numba import jit
+import numpy as np
 import pycbc.detector as pydet
 import pycbc.waveform
-from numba import jit
+
+import pop_utils as pput
 
 DETS = {}
 DETS["H1"] = pydet.Detector(detector_name="H1", reference_time=1126259462.0)

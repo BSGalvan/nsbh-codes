@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+# Program to compute the maximum distance at which the
+# Advanced LIGO network will yield an optimal SNR of 10,
+# given that all detectors operate at the design sensitivities
 
 from argh import arg, dispatch_command
 import numpy as np

@@ -179,7 +179,7 @@ def plot_fluences(fluences_masked, style="ecdf"):
             horizontalalignment="center",
             verticalalignment="bottom",
         )
-        ax.set_title("ECDF of Fluence above FERMI limit")
+        ax.set_title("ECDF of Fluence above INTEGRAL limit")
     else:
         density, _, _ = ax.hist(
             fluences_masked,
@@ -199,7 +199,7 @@ def plot_fluences(fluences_masked, style="ecdf"):
             color="C1",
             label=f"Median = {median_f:.3}",
         )
-        ax.set_title("PDF of Fluence above FERMI limit")
+        ax.set_title("PDF of Fluence above INTEGRAL limit")
 
     ax.grid(True)
     ax.set_axisbelow(True)

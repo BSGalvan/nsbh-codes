@@ -4,27 +4,44 @@
 import numpy as np
 from numba import njit
 from scipy.interpolate import interp1d
+from scipy.optimize import toms748
 from tqdm import tqdm
 
-from nsbh_merger import G, C, PI, M_SUN
+from math_constants import G, C, PI, M_SUN
 
 
 def f_lso(m_tot):
-    """Compute the last stable orbit of a black hole with total mass m_tot."""
-    return C ** 3 / (6 ** 1.5 * PI * (m_tot * M_SUN) * G)
-
-
-def ecdf(x):
-    """Compute the formal empirical CDF.
+    """Compute the frequency of last stable orbit of a black hole with total mass m_tot.
 
     Parameters
     ----------
-    x : array for which ecdf is to be computed
+    m_tot : float
+    Total mass of the system post-merger
 
     Returns
     -------
-    xs : support
-    ys : value of the computed ecdf
+    f_lso : float
+    Frequency corresponding to last stable orbit
+
+    """
+    return C ** 3 / (6 ** 1.5 * PI * (m_tot * M_SUN) * G)
+
+
+@njit
+def ecdf(x):
+    """Compute the formal empirical CDF of a given array, x
+
+    Parameters
+    ----------
+    x : numpy.ndarray
+    Array for which ecdf is to be computed
+
+    Returns
+    -------
+    xs : numpy.ndarray
+    Support
+    ys : numpy.ndarray
+    Value of the computed ecdf
 
     """
     xs = np.sort(x)
@@ -40,13 +57,17 @@ def gen_samples(support, P_x, N=1000, low=None, high=None):
 
     Parameters
     ----------
-    support : ndarray, support for the probability distribution
-    P_x : ndarray of function values, the probability distribution to sample from
-    NUM_SAMP : integer, optional, the number of samples to generate
+    support : numpy.ndarray
+    Support for the probability distribution
+    P_x : numpy.ndarray of function values
+    The probability distribution to sample from
+    NUM_SAMP : integer, optional. Default = 1000
+    The number of samples to generate
 
     Returns
     -------
-    samples : ndarray, the samples generated from P_x
+    samples : numpy.ndarray
+    The samples generated from P_x
 
     """
     if np.trapz(P_x, support) > 1.0:
@@ -90,8 +111,19 @@ def gen_samples(support, P_x, N=1000, low=None, high=None):
 
 
 @njit
-def rcap_isco(chi_bh=0):
-    """Calculate the normalized ISCO radius for a given BH spin."""
+def rcap_isco(chi_bh=0.0):
+    """Calculate the normalized ISCO radius for a given BH spin.
+
+    Parameters
+    ----------
+    chi_bh : float or numpy.ndarray, optional. Default = 0.0
+    Dimensionless spin of the Black Hole
+
+    Returns
+    -------
+    Normalized radius of the Innermost Stable Circular Orbit
+
+    """
     # Function Body
     z1 = 1 + (1 - chi_bh ** 2) ** (1 / 3) * (
         (1 + chi_bh) ** (1 / 3) + (1 - chi_bh) ** (1 / 3)
@@ -102,8 +134,94 @@ def rcap_isco(chi_bh=0):
 
 
 @njit
+def f(nu=0.25):
+    """Compute the transition function given mass ratio."""
+    if nu <= 0.16:
+        retval = 0
+    elif 0.16 < nu < 2 / 9:
+        retval = 0.5 * (1 - np.cos((PI * (nu - 0.16)) / (2 / 9 - 0.16)))
+    elif 2 / 9 <= nu <= 0.25:
+        retval = 1
+    return retval
+
+
+@njit
+def l_z(r, a):
+    numerator = r ** 2 - np.sign(a) * 2 * a * np.sqrt(r) + a ** 2
+    denominator = np.sqrt(r) * np.sqrt(
+        (r ** 2 - 3 * r + np.sign(a) * 2 * a * np.sqrt(r))
+    )
+    return np.sign(a) * numerator / denominator
+
+
+@njit
+def e(r, a):
+    numerator = r ** 2 - 2 * r + np.sign(a) * np.sqrt(r)
+    denominator = r * np.sqrt((r ** 2 - 3 * r + np.sign(a) * 2 * a * np.sqrt(r)))
+    return numerator / denominator
+
+
+@njit
+def pannarale_func(x, chi_bh=0.1, mass_bh=3, mass_ns=1.4, C_ns=0.18, m_rem=0.4):
+    geom_mass_bh, geom_mass_ns, geom_m_rem = (
+        (mass_bh * M_SUN * G) / (C ** 2),
+        (mass_ns * M_SUN * G) / (C ** 2),
+        (m_rem * M_SUN * G) / (C ** 2),
+    )
+    # print("geom_mass_bh:", geom_mass_bh)
+    # print("geom_mass_ns:", geom_mass_ns)
+    # print("geom_m_rem:", geom_m_rem)
+    # print("x: ", x)
+    mass_ratio = geom_mass_bh / geom_mass_ns
+    nu = mass_ratio / (1 + mass_ratio) ** 2
+    f_nu = f(nu)
+    risco_i = rcap_isco(chi_bh)
+    risco_f = rcap_isco(x)
+    lz = l_z(risco_f, x)
+    # print("lz: ", lz)
+    ez_i = e(risco_i, chi_bh)
+    # print("ez_i: ", ez_i)
+    ez_f = e(risco_f, x)
+    # print("ez_f: ", ez_f)
+    geom_mb = (baryonic_mass(mass_ns, C_ns) * G * M_SUN) / (C ** 2)
+    geom_M = ((mass_ns + mass_bh) * G * M_SUN) / (C ** 2)
+
+    numerator = chi_bh * geom_mass_bh ** 2 + lz * geom_mass_bh * (
+        (1 - f_nu) * geom_mass_ns + f_nu * geom_mb - geom_m_rem
+    )
+    denominator = (geom_M * (1 - (1 - ez_i) * nu) - ez_f * geom_m_rem) ** 2
+
+    return x - numerator / denominator
+
+
+def rootfind(chi_bh=0.1, mass_bh=3, mass_ns=1.4, C_ns=0.18, m_rem=0.4):
+    root = toms748(
+        pannarale_func, 0, 0.99999, args=(chi_bh, mass_bh, mass_ns, C_ns, m_rem),
+    )
+    return root
+
+
+@njit
 def c_love(lambda_NS):
-    """Compute the compactness of a NS using the C-Love relation."""
+    """Compute the compactness of a NS using the C-Love relation.
+
+    For more information, see Yagi & Yunes, 2017.
+    The compactness of a neutron star with a radius R_NS and mass M_NS
+    is given by
+    C_NS = G * M_NS / (R_NS * C**2)
+      Where G = Universal Gravitational Constant
+            C = Speed of light in vacuum.
+
+    Parameters
+    ----------
+    lambda_NS : float
+    Tidal deformability of the NS
+
+    Returns
+    -------
+    Compactness of the NS, defined as C_NS = G * M_NS / (R_NS * C**2)
+
+    """
     # Function Body
     return 0.36 - 0.0355 * np.log(lambda_NS) + 0.000705 * np.log(lambda_NS) ** 2
 
@@ -111,6 +229,7 @@ def c_love(lambda_NS):
 @njit
 def love_c(c_ns):
     """Compute the tidal deformability, given the compactness.
+
     This function computes the tidal deformability of a neutron star, given the
     compactness of the neutron star, by solving the C-Love relation for the
     tidal deformability.
@@ -133,17 +252,51 @@ def love_c(c_ns):
 
 @njit
 def baryonic_mass(m_NS, C_NS):
-    """Calculate the total baryonic mass."""
+    """Calculate the total baryonic mass for a given NS mass and compactness.
+
+    Parameters
+    ----------
+    m_NS : float, or numpy.ndarray
+    Mass(es) of the Neutron Star
+    C_NS : float or numpy.ndarray
+    Compactness(es) of the Neutron Star
+
+    Returns
+    -------
+    Baryonic mass(es) corresponding to the inputs
+
+    """
     # Function Body
-    m_b = m_NS * (1 + (0.6 * C_NS) / (1 - 0.5 * C_NS))
-    return m_b
+    return m_NS * (1 + (0.6 * C_NS) / (1 - 0.5 * C_NS))
 
 
 def compute_masses(m_BH, chi_BH, m_NS=1.4, lambda_NS=330):
     """Compute masses left outside the BH apparent radius, bound & unbound.
+
     The various masses are the remnant mass, m_out, which further consists of
     the dynamic mass, m_dyn, and the disc mass, m_disc. Thus,
     m_out = m_disc + m_out  (if the NS does not plunge into the BH)
+
+    Parameters
+    ----------
+    m_BH : float or numpy.ndarray
+    Mass(es) of the black hole(s)
+    chi_BH : float or numpy.ndarray
+    Spin(s) of the black hole(s)
+    m_NS : float, optional. Default = 1.4 (M_SUN)
+    Mass of the neutron star
+    lambda_NS : float, optional. Default = 330
+    Tidal deformability of the neutron star
+
+    Returns
+    -------
+    m_out : float or numpy.ndarray
+    Remnant mass (as defined in Foucart et al., 2018)
+    m_dyn : float or numpy.ndarray
+    Dynamical mass (as defined in Kawaguchi et al., 2016)
+    m_disc : float or numpy.ndarray
+    Disc mass (as defined in Barbieri et al., 2019)
+
     """
     # Common binary parameters
     q = m_BH / m_NS
@@ -181,25 +334,15 @@ def compute_masses(m_BH, chi_BH, m_NS=1.4, lambda_NS=330):
     return mass_out, mass_dyn, mass_disc
 
 
-def compute_velmax(velrms, velmin):
-    """Compute the maximum velocity, given RMS and minimum velocities.
-
-    :returns: maximum velocity of a given ejecta
-
-    """
-    velmax = np.sqrt(3 * velrms ** 2 - 0.75 * velmin ** 2) - 0.5 * velmin
-
-    return velmax
-
-
+@njit
 def cart2sph(x, y, z):
     """Convert cartesian coordinates to spherical coordinates.
 
     Parameters
     ----------
-    x : float or ndarray
-    y : float or ndarray
-    z : float or ndarray
+    x : float or numpy.ndarray
+    y : float or numpy.ndarray
+    z : float or numpy.ndarray
 
     Returns
     -------
@@ -212,18 +355,22 @@ def cart2sph(x, y, z):
     return r, theta, phi
 
 
+@njit
 def sph2cart(r, theta, phi):
     """Convert spherical coordinates to cartesian coordinates.
 
     Parameters
     ----------
-    r : radial coordinate
-    theta : latitudinal coordinate, measured from the pole.
-    phi : longitudinal coordinate
+    r : float or numpy.ndarray
+    The radial coordinate
+    theta : float or numpy.ndarray
+    The latitudinal coordinate, measured from the "north pole"
+    phi : float or numpy.ndarray
+    The longitudinal coordinate
 
     Returns
     -------
-    Cartesian coordinates of the point (r, theta, phi)
+    Cartesian coordinates for the point (r, theta, phi)
 
     """
     x = r * np.cos(phi) * np.sin(theta)

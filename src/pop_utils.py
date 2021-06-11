@@ -1,11 +1,11 @@
-import numpy as np
+from os.path import abspath
 
-# import scipy
-# import sys
+import numpy as np
 import scipy.interpolate as si
 from scipy.integrate import quad
 
-# from scipy.integrate import simps
+DATA_DIR = abspath("../data/")
+NOISE_DIR = f"{DATA_DIR}/sensitivity_curves"
 
 """ Conversion factors """
 
@@ -162,19 +162,21 @@ def psdInterp(filename, filetype="psd"):
 # avirgo_sqzd = psdInterp(filename='../data/PSD/AdVirgo_sqz.txt',filetype='asd')
 # kagra       = psdInterp(filename='../data/PSD/Kagra.txt',filetype='asd')
 
+ALLO_O3A_FILE = "O3-L1-C01_CLEAN_SUB60HZ-1240573680.0_sensitivity_strain_asd.txt"
+ALHO_O3A_FILE = "O3-H1-C01_CLEAN_SUB60HZ-1251752040.0_sensitivity_strain_asd.txt"
+AVIRGO_FILE = "O3-V1_sensitivity_strain_asd.txt"
+ALIGO_DES_FILE = "aLIGO_ZERO_DET_high_P.txt"
+ALIGO_OLD_FILE = "aLIGO_old.txt"
 
-allo_o3a = psdInterp(
-    filename="data/O3-L1-C01_CLEAN_SUB60HZ-1240573680.0_sensitivity_strain_asd.txt",
-    filetype="asd",
-)
-alho_o3a = psdInterp(
-    filename="data/O3-H1-C01_CLEAN_SUB60HZ-1251752040.0_sensitivity_strain_asd.txt",
-    filetype="asd",
-)
-avirgo_o3a = psdInterp(filename="data/O3-V1_sensitivity_strain_asd.txt", filetype="asd")
+# 03a sensitivities
+allo_o3a = psdInterp(filename=f"{NOISE_DIR}/{ALLO_O3A_FILE}", filetype="asd",)
+alho_o3a = psdInterp(filename=f"{NOISE_DIR}/{ALHO_O3A_FILE}", filetype="asd",)
+avirgo_o3a = psdInterp(filename=f"{NOISE_DIR}/{AVIRGO_FILE}", filetype="asd")
 
-allo_des = psdInterp(filename="data/aLIGO_ZERO_DET_high_P.txt", filetype="asd")
-alho_des = psdInterp(filename="data/aLIGO_ZERO_DET_high_P.txt", filetype="asd")
-avirgo_des = psdInterp(filename="data/aLIGO_ZERO_DET_high_P.txt", filetype="asd")
+# Design sensitivities
+allo_des = psdInterp(filename=f"{NOISE_DIR}/{ALIGO_DES_FILE}", filetype="asd")
+alho_des = psdInterp(filename=f"{NOISE_DIR}/{ALIGO_DES_FILE}", filetype="asd")
+avirgo_des = psdInterp(filename=f"{NOISE_DIR}/{ALIGO_DES_FILE}", filetype="asd")
 
-aligo_old = psdInterp(filename="data/aLIGO_old.txt", filetype="asd")
+# Old sensitivities?
+aligo_old = psdInterp(filename=f"{NOISE_DIR}/{ALIGO_OLD_FILE}", filetype="asd")
