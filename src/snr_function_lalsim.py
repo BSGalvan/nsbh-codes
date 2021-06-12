@@ -1,3 +1,8 @@
+#!/usr/bin/env python
+# Module containing all the functions necessary for SNR calculations
+# Original Author: Muhammed Saleem, gitlab.com/cmsaleem
+# Contributors: B.S. Bharath Saiguhan, github.com/bsgalvan
+
 from math import sqrt
 
 import lal
@@ -144,7 +149,6 @@ def optimal_snr(
     )
 
     f = np.array(hp.sample_frequencies.data)
-    # f = np.arange(0, f_max + deltaF, deltaF)
     inBand = (f >= f_min) & (f <= f_max)
     f = f[inBand]  # trimmed the zero paddings
     hpf = np.array(hp.data)[inBand]

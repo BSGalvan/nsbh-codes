@@ -2,6 +2,9 @@
 # Program to compute the maximum distance at which the
 # Advanced LIGO network will yield an optimal SNR of 10,
 # given that all detectors operate at the design sensitivities
+# Usage: ./d_max [--steps=1000 | --eps=1e-10 | --verbose=False ] LOW HIGH
+# Get help with ./d_max.py -h,--help
+# Original Author: B.S. Bharath Saiguhan, github.com/bsgalvan
 
 from argh import arg, dispatch_command
 import numpy as np

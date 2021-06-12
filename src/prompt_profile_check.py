@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # Program to check if the prompt emission code
 # correctly computes the profile given a population
+# Original Author: B.S. Bharath Saiguhan, github.com/bsgalvan
 
 from os.path import abspath
 from time import sleep
@@ -28,6 +29,7 @@ POP_PATH = f"{POP_DIR}/{POP_FILE}"
 
 def gaussian(theta, phi, theta_v):
     """Return function value at (theta, phi), corresponding to Gaussian jet."""
+    # very hacky. TODO: write better tests!
     print("==================================================================")
     print(f"theta={np.degrees(theta)}")
     print(f"phi={np.degrees(phi)}")
@@ -76,6 +78,8 @@ if __name__ == "__main__":
     theta_v = np.minimum(iota, PI - iota)  # in radians
 
     for idx, angle in tqdm(
-        enumerate(theta_v[:10]), desc="Calculating E_iso(theta_v)...", total=10,
+        enumerate(theta_v[:10]),
+        desc="Calculating E_iso(theta_v)...",
+        total=10,
     ):
         E_iso[idx] = do_gauss_cutoff_integral(angle, GAUSS_CUT)[0]

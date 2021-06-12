@@ -1,5 +1,7 @@
 #!/usr/bin/env python
-# Program to create a population of NS-BH binaries with various prior distributions.
+# Module to create a population of NS-BH binaries with various prior distributions.
+# Specifically creates BHs with a truncated gaussian spin distribution
+# Original Author: B.S. Bharath Saiguhan, github.com/bsgalvan
 
 # %% Imports, Auxiliary Function Definitions and constants.
 

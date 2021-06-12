@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 # Program to compute the 'posterior' for the disc mass, using other posteriors
 # for other quantities as given in GWTC-1 for GW170817
+# Original Author: B.S. Bharath Saiguhan, github.com/bsgalvan
 
+# %% Imports, constants and Auxiliary functions
 
 import h5py
 import matplotlib.pyplot as plt
@@ -14,11 +16,17 @@ from prompt_emission import do_gauss_cutoff_integral
 
 
 if __name__ == "__main__":
+    # %% Set up plot styles so it isn't a PITA
+
     style.use(["fivethirtyeight", "seaborn-ticks"])
+
+    # %% Get TLDs for data and files
 
     DATA_PATH = "/home/bharath/Desktop/a-tale-of-two-dead-stars/codes/data_store"
     FILE_NAME = "GW170817_GWTC-1.hdf5"
     FILE_PATH = f"{DATA_PATH}/{FILE_NAME}"
+
+    # %% Read the posterior files
 
     with h5py.File(FILE_PATH, "r") as f:
         dset = f["IMRPhenomPv2NRT_highSpin_posterior"]
@@ -28,6 +36,7 @@ if __name__ == "__main__":
     m2 = arr["m2_detector_frame_Msun"]
 
     if np.median(m1) > np.median(m2):
+        # BH -> distribution with higher median mass
         mass_bh, mass_ns = m1, m2
         spin_bh = arr["spin1"]
         lambda_ns = arr["lambda1"]
@@ -39,6 +48,7 @@ if __name__ == "__main__":
     mass_ratio = mass_bh / mass_ns
     mass_rem, _, mass_disc = mu.compute_masses(mass_bh, spin_bh, mass_ns, lambda_ns)
 
+    # ignore all samples with non-zero disk mass
     disc_mask = mass_disc > 0
 
     THETA_V = np.radians(20)
@@ -60,8 +70,17 @@ if __name__ == "__main__":
         total=disc_mask.sum(),
     ):
         E_iso[idx] = do_gauss_cutoff_integral(
-            THETA_V, CUTOFF_ANGLE, disc, spin, bh_mass, ns_mass, compactness, rem_mass,
+            THETA_V,
+            CUTOFF_ANGLE,
+            disc,
+            spin,
+            bh_mass,
+            ns_mass,
+            compactness,
+            rem_mass,
         )[0]
+
+    # %% Plotting
 
     plt.figure()
     plt.scatter(

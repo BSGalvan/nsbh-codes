@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 # Module defining all the relevant astronomical constants, in consistent units
+# Original Author: B.S. Bharath Saiguhan, github.com/bsgalvan
 
 import numpy as np
 from astropy import constants as const
 
-# All constants are in CGS units!
+# All dimensional constants are in CGS units!
 G = const.G.cgs.value  # Universal Gravitational Constant
 C = const.c.cgs.value  # Speed of light
 H = const.h.cgs.value  # Planck's constant

@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 # Program to compute the prompt emission, given a disc mass M_disc
+# using the equations from Barbieri et al., 2019, and Pannarale, 2013
+# Original Author: B.S. Bharath Saiguhan, github.com/bsgalvan
 
 from numba import njit
 import numpy as np
@@ -23,25 +25,6 @@ def calc_omega_H(chi_bh=1):
     return chi_bh / (2 * (1 + np.sqrt(1 - chi_bh ** 2)))
 
 
-# @njit
-# def calc_E_kin_jet(M_disc=1, chi_bh=1):
-# """ Calculate the kinetic energy, given the disc mass in M_sun"""
-# epsilon = 0.015  # as specified in Barbieri et al., 2019
-# xi_wind = 0.01  # fraction of M_disc ejected as wind
-# xi_secular = 0.2  # fraction of M_disc which is secular ejecta
-# omega_H = calc_omega_H(chi_bh)
-# f = 1 + 1.38 * omega_H ** 2 - 9.2 * omega_H ** 4
-# return (
-# epsilon
-# * (1 - xi_wind - xi_secular)
-# * M_disc
-# * M_SUN
-# * C ** 2
-# * omega_H ** 2
-# * f
-# )
-
-
 def calc_E_kin_jet(
     M_disc=0.001, chi_bh=0.5, mass_bh=3, mass_ns=1, C_ns=0.18, M_rem=0.0
 ):
@@ -63,21 +46,6 @@ def calc_E_kin_jet(
     )
 
 
-# @njit  # need for faster code! DO NOT REMOVE!
-# def gaussian(theta, phi, theta_v, M_disc=1, chi_bh=1):
-# """Return function value at (theta, phi), corresponding to Gaussian jet."""
-# gamma = 1 + (gamma_0 - 1) * np.exp(-((theta / theta_gamma) ** 2))
-# beta = np.sqrt(1 - 1 / gamma ** 2)
-# E_c = calc_E_kin_jet(M_disc, chi_bh) / (PI * theta_E ** 2)
-# dE_dOmega = E_c * np.exp(-((theta / theta_E) ** 2))
-# cos_alpha = np.cos(theta_v) * np.cos(theta) + np.sin(theta_v) * np.sin(
-# theta
-# ) * np.cos(phi)
-# # Define return values
-# retval = np.sin(theta) * dE_dOmega / ((gamma ** 4) * ((1 - beta * cos_alpha) ** 3))
-# return eta * retval
-
-
 @njit
 def gaussian(theta, phi, theta_v, E_c):
     """Return function value at (theta, phi), corresponding to Gaussian jet."""
@@ -90,18 +58,6 @@ def gaussian(theta, phi, theta_v, E_c):
     # Define return values
     retval = np.sin(theta) * dE_dOmega / ((gamma ** 4) * ((1 - beta * cos_alpha) ** 3))
     return eta * retval
-
-
-# def do_gauss_cutoff_integral(theta_v, cutoff_angle, M_disc=1, chi_bh=1):
-# """Return the value after integrating over a gaussian jet with a cutoff."""
-# ans, err, out_dict = nquad(
-# gaussian,
-# ranges=[[0, cutoff_angle], [0, 2 * PI]],
-# args=(theta_v, M_disc, chi_bh),
-# full_output=True,
-# )
-# # print("Got gamma_0 of ", gamma_0)
-# return ans, err, out_dict
 
 
 def do_gauss_cutoff_integral(

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
-"""Module to define plotting functions to be used elsewhere."""
+# Module to define plotting functions to be used elsewhere
+# Original Author: B.S. Bharath Saiguhan, github.com/bsgalvan
 
 import numpy as np
 import matplotlib.pyplot as plt

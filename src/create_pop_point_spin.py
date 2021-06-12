@@ -1,5 +1,8 @@
 #!/usr/bin/env python
-# Program to create a population of NS-BH binaries with various prior distributions.
+# Module to create a population of NS-BH binaries with various prior distributions
+# Specifically creates BHs with a point estimate for the spin
+# Original Author: B.S. Bharath Saiguhan, github.com/bsgalvan
+
 # %% Imports, Auxiliary Function Definitions and constants.
 
 import json
@@ -9,7 +12,6 @@ import time
 import h5py
 import numpy as np
 
-# from tqdm import tqdm
 from scipy.stats import powerlaw
 
 from math_utils import gen_samples, love_c
@@ -24,7 +26,8 @@ logging.basicConfig(
 start = time.time()
 
 logging.debug("Start of the Program")
-logging.disable()
+logging.disable()  # comment this call out to enable logging.
+# NOTE: enabling logging will also dump numba messages!
 
 M_MIN = 3.0  # lower cut-off for BH distribution considered
 M_MAX = 20.0  # upper cut-off for BH distribution considered
@@ -35,11 +38,6 @@ NUM_SAMP = 100000  # number of samples in population
 
 # Define path to the 'truncated' mass ppd file
 ppd_file = "data/o1o2o3_mass_b_iid_mag_two_comp_iid_tilt_powerlaw_redshift_mass_data.h5"
-
-# Define path to the 'default' spin magnitude distribution file
-# spin_file = (
-# "data/o1o2o3_mass_c_iid_mag_two_comp_iid_tilt_powerlaw_redshift_magnitude_data.h5"
-# )
 
 # Define dummy arrays for integrations
 # See https://dcc.ligo.org/public/0171/P2000434/002/Produce-Figures.ipynb
@@ -54,20 +52,6 @@ with h5py.File(ppd_file, "r") as f:
     mass_1_ppd = np.trapz(mass_ppd, mass_ratio_dummy, axis=0)
 
 logging.debug("Finished extracting mass PPD")
-
-# spin_mags_dummy = np.linspace(0, 1, 1000)  # for normalization of spin dist.
-# with h5py.File(spin_file, "r") as f:
-# ppd = f["ppd"]
-# lines = f["lines"]
-# num_lines = len(lines["a_1"])
-# # Normalize to get probability distributions on a_1
-# normalized_lines = np.array(
-# [
-# lines["a_1"][i, :] / np.trapz(lines["a_1"][i, :], spin_mags_dummy)
-# for i in range(num_lines)
-# ]
-# )
-# spin_probs_ppd = np.mean(normalized_lines, axis=0)
 
 # logging.debug("Finished extracting spin PPD")
 

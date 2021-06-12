@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # Program to see where other known SGRBs fall in the Q-chi_BH plane.
+# Original Author: B.S. Bharath Saiguhan, github.com/bsgalvan
 
 from os.path import abspath
 

@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 # Program to compute the 'posterior' for the disc mass, using other posteriors
 # for other quantities as given in GWTC-2 for GW190425
+# Original Author: B.S. Bharath Saiguhan, github.com/bsgalvan
 
+# %% Imports, constants and Auxiliary functions
 
 import h5py
 import matplotlib.pyplot as plt
@@ -14,11 +16,17 @@ from math_constants import MPC
 from prompt_emission import do_gauss_cutoff_integral
 
 if __name__ == "__main__":
+    # %% Set up plot styles so it isn't a PITA
+
     style.use(["fivethirtyeight", "seaborn-ticks"])
+
+    # %% Get TLDs for data and files
 
     DATA_PATH = "/home/bharath/Desktop/a-tale-of-two-dead-stars/codes/data_store"
     FILE_NAME = "GW190425.h5"
     FILE_PATH = f"{DATA_PATH}/{FILE_NAME}"
+
+    # %% Read the posterior files
 
     with h5py.File(FILE_PATH, "r") as f:
         grp = f["PhenomPNRT-HS"]
@@ -29,6 +37,7 @@ if __name__ == "__main__":
     m2 = arr["mass_2"]
 
     if np.median(m1) > np.median(m2):
+        # BH -> distribution with higher median mass
         mass_bh, mass_ns = m1, m2
         spin_bh = arr["a_1"]
         lambda_ns = arr["lambda_1"]
@@ -40,6 +49,7 @@ if __name__ == "__main__":
     mass_ratio = mass_bh / mass_ns
     mass_rem, _, mass_disc = mu.compute_masses(mass_bh, spin_bh, mass_ns, lambda_ns)
 
+    # ignore all samples with non-zero disk mass
     disc_mask = mass_disc > 0
 
     iota = arr["iota"]
@@ -69,6 +79,8 @@ if __name__ == "__main__":
         )[0]
 
     fluence = E_iso / (4 * np.pi * (lum_dist[disc_mask] * MPC) ** 2)
+
+    # %% Plotting
 
     plt.figure()
     plt.scatter(

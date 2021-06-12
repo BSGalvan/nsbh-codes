@@ -1,5 +1,9 @@
 #!/usr/bin/env python
-# Program to create a population of NS-BH binaries with various prior distributions.
+# Module to create a population of NS-BH binaries with various prior distributions.
+# Specifically creates BHs with a Beta distribution for the spin, as in the GWTC-2
+# population inference paper.
+# Original Author: B.S. Bharath Saiguhan, github.com/bsgalvan
+
 # %% Imports, Auxiliary Function Definitions and constants.
 
 import json

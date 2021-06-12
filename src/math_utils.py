@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # Module containing mathematical utility functions used elsewhere.
+# Original Author: B.S. Bharath Saiguhan, github.com/bsgalvan
 
 import numpy as np
 from numba import njit
@@ -135,7 +136,9 @@ def rcap_isco(chi_bh=0.0):
 
 @njit
 def f(nu=0.25):
-    """Compute the transition function given mass ratio."""
+    """Compute the transition function given mass ratio.
+    See Pannarale, 2013 for more information.
+    """
     if nu <= 0.16:
         retval = 0
     elif 0.16 < nu < 2 / 9:
@@ -147,6 +150,20 @@ def f(nu=0.25):
 
 @njit
 def l_z(r, a):
+    """Compute the orbital angular momentum per unit mass of a test particle.
+
+    This is computed in the Kerr spacetime, using Boyer-Lindquist coordinates.
+
+    Parameters
+    ----------
+    r : radial Boyer-Lindquist coordinate
+    a : dimensionless spin of the (remnant) black hole
+
+    Returns
+    -------
+    Orbital Angular momentum per unit mass of the test particle orbiting the BH
+
+    """
     numerator = r ** 2 - np.sign(a) * 2 * a * np.sqrt(r) + a ** 2
     denominator = np.sqrt(r) * np.sqrt(
         (r ** 2 - 3 * r + np.sign(a) * 2 * a * np.sqrt(r))
@@ -156,6 +173,20 @@ def l_z(r, a):
 
 @njit
 def e(r, a):
+    """Compute the energy per unit mass of a test particle.
+
+    This is computed in the Kerr spacetime, using Boyer-Lindquist coordinates.
+
+    Parameters
+    ----------
+    r : radial Boyer-Lindquist coordinate
+    a : dimensionless spin of the (remnant) black hole
+
+    Returns
+    -------
+    Energy per unit mass of the test particle orbiting the BH
+
+    """
     numerator = r ** 2 - 2 * r + np.sign(a) * np.sqrt(r)
     denominator = r * np.sqrt((r ** 2 - 3 * r + np.sign(a) * 2 * a * np.sqrt(r)))
     return numerator / denominator
@@ -163,26 +194,31 @@ def e(r, a):
 
 @njit
 def pannarale_func(x, chi_bh=0.1, mass_bh=3, mass_ns=1.4, C_ns=0.18, m_rem=0.4):
+    """Compute function defined in Eq. 11 of [Pannarale, 2013] in root-solving form.
+
+    Essentially, this is a function g(x) such that we want to solve:
+        g(x) = x - f(x) = 0
+
+    And f(x) is the big, complicated function from RHS of Eq. 11, [Pannarale, 2013]
+
+    """
+
+    # Redefine masses in geometrized units
+
     geom_mass_bh, geom_mass_ns, geom_m_rem = (
         (mass_bh * M_SUN * G) / (C ** 2),
         (mass_ns * M_SUN * G) / (C ** 2),
         (m_rem * M_SUN * G) / (C ** 2),
     )
-    # print("geom_mass_bh:", geom_mass_bh)
-    # print("geom_mass_ns:", geom_mass_ns)
-    # print("geom_m_rem:", geom_m_rem)
-    # print("x: ", x)
+
     mass_ratio = geom_mass_bh / geom_mass_ns
     nu = mass_ratio / (1 + mass_ratio) ** 2
     f_nu = f(nu)
     risco_i = rcap_isco(chi_bh)
     risco_f = rcap_isco(x)
     lz = l_z(risco_f, x)
-    # print("lz: ", lz)
     ez_i = e(risco_i, chi_bh)
-    # print("ez_i: ", ez_i)
     ez_f = e(risco_f, x)
-    # print("ez_f: ", ez_f)
     geom_mb = (baryonic_mass(mass_ns, C_ns) * G * M_SUN) / (C ** 2)
     geom_M = ((mass_ns + mass_bh) * G * M_SUN) / (C ** 2)
 
@@ -195,8 +231,12 @@ def pannarale_func(x, chi_bh=0.1, mass_bh=3, mass_ns=1.4, C_ns=0.18, m_rem=0.4):
 
 
 def rootfind(chi_bh=0.1, mass_bh=3, mass_ns=1.4, C_ns=0.18, m_rem=0.4):
+    """Solve for the root (remnant BH mass) using the given inputs."""
     root = toms748(
-        pannarale_func, 0, 0.99999, args=(chi_bh, mass_bh, mass_ns, C_ns, m_rem),
+        pannarale_func,
+        0,
+        0.99999,
+        args=(chi_bh, mass_bh, mass_ns, C_ns, m_rem),
     )
     return root
 

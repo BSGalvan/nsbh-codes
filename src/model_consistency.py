@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # Program to test the consistency of the various models used in the thesis.
 # First from Foucart et al., 2018 and second from Kawaguchi et al., 2016.
+# Original Author: B.S. Bharath Saiguhan, github.com/bsgalvan
 
-
-# Imports and Auxiliary Functions
+# %% Imports and Auxiliary Functions
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -15,7 +15,7 @@ if __name__ == "__main__":
 
     plt.style.use(["fivethirtyeight", "seaborn-ticks"])
 
-    # Checking for Model Consistency
+    # %% Checking for Model Consistency
 
     mass_NS = 1.4
     Lambda = 330  # corresponding to SFHo EoS
@@ -25,12 +25,13 @@ if __name__ == "__main__":
     mm, ss = np.meshgrid(mass_bh, spin_bh)
     m_out, m_dyn, m_disc = mu.compute_masses(mm, ss)
 
-    # Plotting
+    # %% Plotting
 
     lvls = np.array([1e-4, 5e-4, 1e-3, 5e-3, 1e-2, 5e-2, 0.1, 0.2, 0.3, 0.4, 0.5])
     norm = LogNorm(vmin=lvls.min(), vmax=lvls.max())
 
     # m_dyn
+
     fig1, ax1 = plt.subplots()
     ax1.set_xlabel(r"$M_{BH}[M_\odot]$")
     ax1.set_ylabel(r"$\chi_{BH}$")

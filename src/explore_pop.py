@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 # Program to explore the properties of a population generated using create_pop.py
+# Original Author: B.S. Bharath Saiguhan, github.com/bsgalvan
+
 # %% Imports, Auxiliary Function Definitions and constants.
 
-# import concurrent.futures
 import json
 import time
 from os.path import abspath
@@ -113,13 +114,6 @@ if __name__ == "__main__":
     print("Computing E_iso(theta_v)")
 
     E_iso = np.zeros(NUM_SAMPLES)
-
-    # for idx, (angle, disc, spin) in tqdm(
-    # enumerate(zip(theta_v, mass_disc, chi_bh)),
-    # desc="Calculating E_iso(theta_v)... ",
-    # total=NUM_SAMPLES,
-    # ):
-    # E_iso[idx] = do_gauss_cutoff_integral(angle, GAUSS_CUT, disc, spin)[0]
 
     for idx, (angle, disc, spin, bh_mass, ns_mass, compactness, rem_mass) in tqdm(
         enumerate(zip(theta_v, mass_disc, chi_bh, mass_bh, mass_ns, c_ns, mass_rem)),

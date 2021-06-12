@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # Program to compute the Gamma-ray fluence of a prototypical 5-1.4 M_sun binary,
 # in the q-chi_bh plane.
+# Original Author: B.S. Bharath Saiguhan, github.com/bsgalvan
 
 import numpy as np
 import matplotlib.pyplot as plt

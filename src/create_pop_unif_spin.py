@@ -1,6 +1,8 @@
 #!/usr/bin/env python
-# Program to create a population of NS-BH binaries with various prior distributions.
-# The spin distribution is uniform between 0-1.
+# Module to create a population of NS-BH binaries with various prior distributions.
+# Specifically creates BHs with a standard uniform distribution
+# Original Author: B.S. Bharath Saiguhan, github.com/bsgalvan
+
 # %% Imports, Auxiliary Function Definitions and constants.
 
 import json
@@ -24,7 +26,8 @@ logging.basicConfig(
 start = time.time()
 
 logging.debug("Start of the Program")
-logging.disable()
+logging.disable()  # comment this call out to enable logging.
+# NOTE: enabling logging will also dump numba messages!
 
 M_MIN = 3.0  # lower cut-off for BH distribution considered
 M_MAX = 10.0  # upper cut-off for BH distribution considered
@@ -54,20 +57,6 @@ with h5py.File(ppd_file, "r") as f:
     mass_1_ppd = np.trapz(mass_ppd, mass_ratio_dummy, axis=0)
 
 logging.debug("Finished extracting mass PPD")
-
-# spin_mags_dummy = np.linspace(0, 1, 1000)  # for normalization of spin dist.
-# with h5py.File(spin_file, "r") as f:
-# ppd = f["ppd"]
-# lines = f["lines"]
-# num_lines = len(lines["a_1"])
-# # Normalize to get probability distributions on a_1
-# normalized_lines = np.array(
-# [
-# lines["a_1"][i, :] / np.trapz(lines["a_1"][i, :], spin_mags_dummy)
-# for i in range(num_lines)
-# ]
-# )
-# spin_probs_ppd = np.mean(normalized_lines, axis=0)
 
 # logging.debug("Finished extracting spin PPD")
 
