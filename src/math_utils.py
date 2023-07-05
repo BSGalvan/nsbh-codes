@@ -315,7 +315,7 @@ def compute_masses(m_BH, chi_BH, m_NS=1.4, lambda_NS=330):
 
     The various masses are the remnant mass, m_out, which further consists of
     the dynamic mass, m_dyn, and the disc mass, m_disc. Thus,
-    m_out = m_disc + m_out  (if the NS does not plunge into the BH)
+    m_out = m_disc + m_dyn  (if the NS does not plunge into the BH)
 
     Parameters
     ----------

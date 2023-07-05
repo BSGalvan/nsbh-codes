@@ -51,7 +51,7 @@ if __name__ == "__main__":
     # ignore all samples with non-zero disk mass
     disc_mask = mass_disc > 0
 
-    THETA_V = np.radians(20)
+    THETA_V = np.radians(22)
     CUTOFF_ANGLE = np.pi / 3
 
     E_iso = np.zeros(disc_mask.sum())
